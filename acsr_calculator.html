@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ACSR Conductor Calculator – IEC 61089</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#15202B; --muted:#586674; --line:#D8DEE4; --line-soft:#E7EBEF;
+  --accent:#1B5FC9; --accent-soft:#E4EDFB; --focus:#1B5FC9;
+  --al:#B4C1CE; --al-stroke:#7C8C9B; --inc:#1E9C8B; --st:#3C4855; --st2:#6B7886; --st-stroke:#222B35;
+  --grease:#E3A82A; --grease-soft:rgba(227,168,42,.38);
+  --warn:#9A5B00; --warn-bg:#FFF4DC; --err:#C23030;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E141A; --surface:#151D25; --ink:#E7ECF1; --muted:#93A1AF; --line:#2A3641; --line-soft:#212B35;
+    --accent:#6FA2FF; --accent-soft:#1B2B45; --focus:#6FA2FF;
+    --al:#8797A7; --al-stroke:#C3CFDA; --inc:#43C2B0; --st:#46525F; --st2:#7C8996; --st-stroke:#AEBBC8;
+    --grease:#E8B13C; --grease-soft:rgba(232,177,60,.34);
+    --warn:#F0B95A; --warn-bg:#33270F; --err:#FF7A7A;
+  }
+}
+:root[data-theme="dark"]{
+    --bg:#0E141A; --surface:#151D25; --ink:#E7ECF1; --muted:#93A1AF; --line:#2A3641; --line-soft:#212B35;
+    --accent:#6FA2FF; --accent-soft:#1B2B45; --focus:#6FA2FF;
+    --al:#8797A7; --al-stroke:#C3CFDA; --inc:#43C2B0; --st:#46525F; --st2:#7C8996; --st-stroke:#AEBBC8;
+    --grease:#E8B13C; --grease-soft:rgba(232,177,60,.34);
+    --warn:#F0B95A; --warn-bg:#33270F; --err:#FF7A7A;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.topbar{max-width:1360px;margin:0 auto;padding:22px 24px 14px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.topbar h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}
+.topbar p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+.designation{font-size:13.5px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px}
+.designation b{font-weight:600}
+
+.app{max-width:1360px;margin:0 auto;padding:0 24px 40px;display:grid;grid-template-columns:344px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:980px){.app{grid-template-columns:1fr;padding:0 16px 32px}.topbar{padding:18px 16px 12px}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.inputs{padding:18px;position:sticky;top:calc(12px + env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto}
+@media (max-width:980px){.inputs{position:static;max-height:none}}
+h2{margin:0 0 10px;font-size:14px;font-weight:600}
+.sec{margin-bottom:22px}
+.sec:last-child{margin-bottom:0}
+label.lbl{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+select,input[type=number]{width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px;padding:0 10px;font-variant-numeric:tabular-nums}
+select:hover,input[type=number]:hover{border-color:var(--muted)}
+input.invalid{border-color:var(--err)}
+.pair{display:grid;grid-template-columns:78px 1fr 1fr;gap:8px;align-items:center;margin-top:12px}
+.pair .head{font-size:12.5px;font-weight:600;color:var(--muted)}
+.pair .rowlbl{font-size:13px}
+.pair .rowlbl small{display:block;color:var(--muted);font-size:11.5px}
+.field{position:relative}
+.field input{padding-right:10px}
+
+.seg{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--bg)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:7px 0;font-size:13px;cursor:pointer;border-left:1px solid var(--line);user-select:none}
+.seg label:first-of-type{border-left:0}
+.seg input:checked+label{background:var(--accent);color:#fff;font-weight:600}
+.seg input:focus-visible+label{outline:2px solid var(--focus);outline-offset:-2px}
+.casedesc{margin:8px 0 0;font-size:12.5px;color:var(--muted);min-height:36px}
+
+details.sub{border-top:1px solid var(--line-soft);padding-top:10px;margin-top:6px}
+details.sub summary{cursor:pointer;font-size:13px;font-weight:500;padding:2px 0}
+details.sub .hint{font-size:12px;color:var(--muted);margin:6px 0 10px}
+.ovgrid{display:grid;grid-template-columns:1fr;gap:10px}
+
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+button{font:inherit;font-size:13.5px;height:36px;padding:0 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.status{font-size:12.5px;color:var(--muted);margin-top:8px;min-height:18px}
+
+.main>section{margin-bottom:24px}
+.banner{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:13.5px;margin-bottom:16px}
+.banner[hidden]{display:none}
+
+.hero{display:grid;grid-template-columns:minmax(260px,400px) 1fr;gap:28px;padding:22px;align-items:center}
+@media (max-width:760px){.hero{grid-template-columns:1fr;padding:16px}}
+.xs svg{width:100%;height:auto;display:block}
+.xs figcaption{font-size:12px;color:var(--muted);margin-top:6px}
+.xs{margin:0}
+.total .k{font-size:13.5px;color:var(--muted)}
+.total .big{font-size:clamp(40px,6vw,60px);font-weight:600;letter-spacing:-.02em;line-height:1.05;margin:4px 0 2px}
+.total .big span{font-size:18px;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
+.total .sub{font-size:13.5px;color:var(--muted);margin-bottom:18px}
+.bar{display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--line-soft);gap:1px}
+.bar i{display:block;min-width:2px}
+.legend{margin-top:12px;width:100%;border-collapse:collapse;font-size:13.5px}
+.legend td{padding:5px 0;border-bottom:1px solid var(--line-soft)}
+.legend tr:last-child td{border-bottom:0}
+.legend td:nth-child(2){width:100%}
+.legend td.v{text-align:right;white-space:nowrap;padding-left:14px}
+.legend td.p{text-align:right;color:var(--muted);white-space:nowrap;padding-left:14px;width:56px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:-1px}
+
+.stats{display:grid;grid-template-columns:repeat(6,1fr);padding:0;overflow:hidden}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:14px 18px;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);margin:0 -1px -1px 0}
+.stat dt{font-size:12.5px;color:var(--muted)}
+.stat dd{margin:2px 0 0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.stat dd small{font-size:12.5px;font-weight:400;color:var(--muted);margin-left:4px}
+.stat .ext{font-size:11.5px;color:var(--muted);font-weight:400}
+
+.block{padding:18px 20px}
+.block h2{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.block h2 span{font-size:12.5px;font-weight:400;color:var(--muted)}
+.scroll{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px}
+table.t th{font-weight:500;font-size:12.5px;color:var(--muted);text-align:right;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t td{padding:7px 10px;border-bottom:1px solid var(--line-soft);text-align:right;white-space:nowrap}
+table.t tr:last-child td{border-bottom:0}
+table.t td.f{text-align:left;color:var(--muted);font-family:var(--mono);font-size:12px}
+table.t td.cell{color:var(--muted);font-family:var(--mono);font-size:12px}
+table.t tr.tot td{font-weight:600;border-top:1px solid var(--line)}
+table.t th.f{text-align:left}
+.tag{font-size:11.5px;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-left:6px;font-weight:500}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+
+.cases .row{display:grid;grid-template-columns:90px minmax(120px,1fr) 80px 110px;gap:12px;align-items:center;padding:8px 8px;border-radius:6px;cursor:pointer;border:1px solid transparent}
+.cases .row:hover{background:var(--bg)}
+.cases .row.on{background:var(--accent-soft);border-color:var(--accent)}
+.cases .name{font-weight:500;font-size:13.5px}
+.cases .name small{display:block;font-weight:400;color:var(--muted);font-size:12px;line-height:1.3}
+.cases .gb{height:10px;background:var(--line-soft);border-radius:3px;overflow:hidden}
+.cases .gb i{display:block;height:100%;background:var(--grease)}
+.cases .val{text-align:right;font-size:13.5px}
+@media (max-width:640px){.cases .row{grid-template-columns:70px 1fr 90px}.cases .gb{display:none}}
+
+table.cat td,table.cat th{padding:6px 8px}
+table.cat tbody tr{cursor:pointer}
+table.cat tbody tr:hover{background:var(--bg)}
+table.cat tbody tr.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+table.cat td.col{background:rgba(227,168,42,.12)}
+table.cat td.miss{color:var(--warn)}
+.fine{font-size:12px;color:var(--muted);margin:8px 0 0}
+
+.notes ul{margin:0;padding-left:18px;font-size:13.5px}
+.notes li{margin:6px 0}
+.notes code{font-family:var(--mono);font-size:12px;background:var(--bg);padding:1px 5px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+section.rts{grid-template-columns:minmax(0,520px)}
+@media print{.inputs{position:static;max-height:none}.btns{display:none}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>ACSR conductor calculator</h1>
+    <p>Mass per km with IEC 61089 lay increments and grease, plus rated tensile strength. Same logic as your ACSR_CALCULATOR sheet.</p>
+  </div>
+  <div class="designation" id="designation"></div>
+</header>
+
+<div class="app">
+  <aside class="panel inputs" aria-label="Inputs">
+    <div class="sec">
+      <h2>Conductor</h2>
+      <label class="lbl" for="preset">Standard stranding (IEC 61089)</label>
+      <select id="preset"></select>
+
+      <div class="pair">
+        <span></span><span class="head">Aluminium</span><span class="head">Steel</span>
+
+        <span class="rowlbl">Wires<small>strand no</small></span>
+        <div class="field"><input type="number" id="nAl" min="1" step="1" inputmode="numeric" aria-label="Aluminium wire count"></div>
+        <div class="field"><input type="number" id="nSt" min="0" step="1" inputmode="numeric" aria-label="Steel wire count"></div>
+
+        <span class="rowlbl">Diameter<small>mm</small></span>
+        <div class="field"><input type="number" id="dAl" min="0.01" step="0.01" inputmode="decimal" aria-label="Aluminium wire diameter in mm"></div>
+        <div class="field"><input type="number" id="dSt" min="0.01" step="0.01" inputmode="decimal" aria-label="Steel wire diameter in mm"></div>
+
+        <span class="rowlbl">Density<small>g/cm³</small></span>
+        <div class="field"><input type="number" id="rAl" min="0.1" step="0.01" inputmode="decimal" aria-label="Aluminium density"></div>
+        <div class="field"><input type="number" id="rSt" min="0.1" step="0.01" inputmode="decimal" aria-label="Steel density"></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>Grease</h2>
+      <div class="seg" role="radiogroup" aria-label="Grease case">
+        <input type="radio" name="gc" id="gc-none" value="none"><label for="gc-none">None</label>
+        <input type="radio" name="gc" id="gc-K1" value="K1"><label for="gc-K1">K1</label>
+        <input type="radio" name="gc" id="gc-K2" value="K2"><label for="gc-K2">K2</label>
+        <input type="radio" name="gc" id="gc-K3" value="K3"><label for="gc-K3">K3</label>
+        <input type="radio" name="gc" id="gc-K4" value="K4"><label for="gc-K4">K4</label>
+      </div>
+      <p class="casedesc" id="casedesc"></p>
+    </div>
+
+    <div class="sec">
+      <h2>Rated strength</h2>
+      <label class="lbl" for="stGrade">Steel wire grade</label>
+      <select id="stGrade">
+        <option value="reg">Regular steel (IEC Table III)</option>
+        <option value="hs">High strength steel (IEC Table IV)</option>
+      </select>
+      <label class="lbl" for="zn" style="margin-top:10px">Zinc coating class</label>
+      <select id="zn"><option value="1">Class 1</option><option value="2">Class 2</option></select>
+      <label class="lbl" for="basis" style="margin-top:10px">Steel strength basis</label>
+      <select id="basis">
+        <option value="ult">Ultimate tensile stress (as in sheet)</option>
+        <option value="ext">Stress at 1% extension</option>
+      </select>
+      <label class="lbl" for="kf" style="margin-top:10px">Stranding factor (sheet uses 0.95)</label>
+      <input type="number" id="kf" min="0.01" max="1" step="0.01" inputmode="decimal">
+      <details class="sub">
+        <summary>Tensile overrides</summary>
+        <p class="hint">Leave blank to look up the wire tensile stress from the table by wire diameter. Use these for wire grades that are not in the tables.</p>
+        <div class="ovgrid">
+          <div><label class="lbl" for="ovTAl">Aluminium tensile stress (MPa)</label><input type="number" id="ovTAl" step="1" placeholder="auto" inputmode="decimal"></div>
+          <div><label class="lbl" for="ovTSt">Steel tensile stress (MPa)</label><input type="number" id="ovTSt" step="1" placeholder="auto" inputmode="decimal"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="sec">
+      <details class="sub">
+        <summary>Manual overrides</summary>
+        <p class="hint">Leave blank to use the IEC 61089 table. Use these for strandings that are not in the table.</p>
+        <div class="ovgrid">
+          <div><label class="lbl" for="ovAl">Aluminium increment (%)</label><input type="number" id="ovAl" step="0.01" placeholder="auto" inputmode="decimal"></div>
+          <div><label class="lbl" for="ovSt">Steel increment (%)</label><input type="number" id="ovSt" step="0.01" placeholder="auto" inputmode="decimal"></div>
+          <div><label class="lbl" for="ovGr">Grease factor K (kg/km per mm²)</label><input type="number" id="ovGr" step="0.01" placeholder="auto" inputmode="decimal"></div>
+        </div>
+      </details>
+      <details class="sub">
+        <summary>Resistance settings</summary>
+        <p class="hint">Used only for the DC resistance estimate, which is not in your sheet.</p>
+        <label class="lbl" for="rho20">Aluminium resistivity at 20 °C (Ω·mm²/km)</label>
+        <input type="number" id="rho20" step="0.001" inputmode="decimal">
+      </details>
+    </div>
+
+    <div class="btns">
+      <button class="primary" id="copy" type="button">Copy summary</button>
+      <button id="reset" type="button">Reset to sheet values</button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </aside>
+
+  <main class="main">
+    <div class="banner" id="banner" hidden></div>
+
+    <section class="panel hero" aria-label="Result">
+      <figure class="xs">
+        <svg id="xs" viewBox="0 0 400 420" role="img" aria-label="Conductor cross-section schematic"></svg>
+        <figcaption>Schematic cross-section. Wire sizes are to scale; wires per layer are spread by geometry.</figcaption>
+      </figure>
+      <div class="total">
+        <div class="k">Total mass with grease</div>
+        <div class="big num" id="totalBig"></div>
+        <div class="sub" id="totalSub"></div>
+        <div class="bar" id="bar" role="img" aria-label="Mass build-up"></div>
+        <table class="legend num" id="legend"></table>
+      </div>
+    </section>
+
+    <section class="panel stats" aria-label="Key figures"><dl id="stats" style="display:contents"></dl></section>
+
+    <section class="panel hero rts" aria-label="Rated strength">
+      <div class="total">
+        <div class="k">Rated tensile strength (breaking load)</div>
+        <div class="big num" id="rtsBig"></div>
+        <div class="sub" id="rtsSub"></div>
+        <div class="bar" id="rtsBar" role="img" aria-label="Aluminium and steel share of breaking load"></div>
+        <table class="legend num" id="rtsLegend"></table>
+      </div>
+    </section>
+
+    <section class="panel block">
+      <h2>Rated strength steps <span>Cell references point to your Excel sheet</span></h2>
+      <div class="scroll"><table class="t num" id="rtsTrace"></table></div>
+    </section>
+
+    <section class="panel block">
+      <h2>Calculation steps <span>Cell references point to your Excel sheet</span></h2>
+      <div class="scroll"><table class="t num" id="trace"></table></div>
+    </section>
+
+    <section class="panel block cases">
+      <h2>Grease cases compared <span>Select a row to apply it</span></h2>
+      <div id="cases"></div>
+    </section>
+
+    <section class="panel block">
+      <h2>IEC 61089 stranding table <span>Select a row to load it. Mass and RTS use your diameters, densities and strength settings.</span></h2>
+      <div class="scroll"><table class="t cat num" id="cat"></table></div>
+      <p class="fine">† No lay increment for this stranding in the source table, so the mass shown excludes it.</p>
+    </section>
+
+    <section class="panel block notes">
+      <h2>Notes on the source sheet</h2>
+      <ul>
+        <li><b>30/7 is missing from the increment table.</b> Rows 9–25 have no 30/7 entry, and row 12 repeats 18/1. Choosing code <code>G</code> in the sheet would return #N/A. Here you can type the increment under Manual overrides.</li>
+        <li><b>Two grease cells are text.</b> <code>M42</code> and <code>M44</code> hold "4,21" and "6,27" with comma decimals. The formulas read <code>S9:AI12</code>, which is numeric, so results are correct today, but anything pointing at <code>H35:M51</code> would break.</li>
+        <li><b>The code and the wire counts are separate inputs in the sheet</b> (<code>D12</code> and <code>D5/E5</code>), so they can disagree. The dashboard reads the code from the wire counts.</li>
+        <li><b>Steel increment is looked up by steel wire count only</b> (<code>VLOOKUP(E5,J9:M25,4,0)</code>, first match). It works for the current table. The dashboard matches on aluminium and steel counts together.</li>
+        <li><b>Grease mass uses the steel wire diameter</b> (<code>D16 = K × E6²</code>). For all-aluminium strandings with no steel, the aluminium wire diameter is used. Check this against the standard for strandings where the two diameters differ.</li>
+        <li><b>Column N ("Electrical Resistence") is unused in the sheet</b> and equals the aluminium increment. It is used here as the resistance increment for the DC resistance estimate, which is an addition.</li>
+        <li><b>Rated strength follows C24:C31.</b> Stress (MPa) ÷ 9.81 × 0.95 × CSA × 9.81 ÷ 1000, summed for aluminium and steel. The sheet types the stresses in (<code>C24</code> = 165, <code>D24</code> = 1310). The dashboard looks them up from the tables pasted in your sheet by wire diameter: aluminium Table I, steel Table III (regular) or IV (high strength). With your 3.2 mm aluminium and 3.0 mm steel wires this gives 165 and 1310 MPa, the same as the sheet, and a rated strength of 94.36 kN.</li>
+        <li><b>The sheet applies 0.95 to both metals using ultimate stress.</b> The dashboard keeps that as the default. The "1% extension" option uses the steel stress at 1% extension from the same tables instead. Check which basis your edition of the standard or the customer specification requires.</li>
+        <li><b>The sheet calculates rated strength for one stranding at a time.</b> The stranding table shows an RTS column using your current wire diameters and strength settings. The tables only cover wires up to 5.0 mm (aluminium) and 1.24 to 5.5 mm (steel); outside that, enter a stress under Tensile overrides.</li>
+        <li><code>D14</code> uses XLOOKUP, which needs Excel 2021 or Microsoft 365.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<script>
+// <calc>
+const STR=[
+ {c:'A',al:6, st:1, la:1,ia:1.52,is:0,   g:[0,0,.96,.46]},
+ {c:'B',al:7, st:0, la:1,ia:1.31,is:0,   g:[0,0,.96,.46]},
+ {c:'C',al:18,st:1, la:2,ia:1.9, is:0,   g:[0,.96,2.87,1.87]},
+ {c:'D',al:22,st:7, la:2,ia:2.04,is:.43, g:[.3,1.57,3.81,2.69]},
+ {c:'E',al:26,st:7, la:2,ia:2.16,is:.43, g:[.58,2.17,4.72,3.37]},
+ {c:'F',al:19,st:0, la:2,ia:1.8, is:0,   g:[0,.96,2.87,1.87]},
+ {c:'G',al:30,st:7, la:2,ia:null,is:null,g:[.96,2.87,5.74,4.21]},
+ {c:'H',al:37,st:0, la:3,ia:2.04,is:0,   g:[0,2.87,5.74,4.21]},
+ {c:'I',al:61,st:0, la:4,ia:2.19,is:0,   g:[0,5.74,9.57,7.27]},
+ {c:'J',al:45,st:7, la:3,ia:2.23,is:.43, g:[.43,4.25,7.6,6.27]},
+ {c:'K',al:54,st:7, la:3,ia:2.33,is:.43, g:[.96,5.74,9.57,7.27]},
+ {c:'L',al:54,st:19,la:3,ia:2.33,is:.77, g:[1.03,5.82,9.64,7.33]},
+ {c:'M',al:72,st:7, la:4,ia:2.32,is:.43, g:[.43,7.6,11.9,8.97]},
+ {c:'N',al:72,st:19,la:4,ia:2.32,is:.77, g:[.46,7.63,11.94,9.42]},
+ {c:'O',al:84,st:7, la:4,ia:2.4, is:.43, g:[.96,9.57,14.35,11.11]},
+ {c:'P',al:84,st:19,la:4,ia:2.4, is:.77, g:[1.03,9.64,14.43,11.18]},
+ {c:'Q',al:91,st:0, la:5,ia:2.3, is:0,   g:[0,9.57,14.35,11.11]}
+];
+const CASES=['K1','K2','K3','K4'];
+// Wire tensile tables. Rows: [up to and including d (mm), stress at 1% ext (MPa), ultimate (MPa)]
+const AL_T=[[1.25,200],[1.5,195],[1.75,190],[2,185],[2.25,180],[2.5,175],[3,170],[3.5,165],[5,160]];
+const ST_T={
+ reg:{1:[[2.25,1170,1340],[2.75,1140,1310],[3,1140,1310],[3.5,1100,1290],[4.25,1100,1290],[4.75,1100,1290],[5.5,1100,1290]],
+      2:[[2.25,1100,1240],[2.75,1070,1210],[3,1070,1210],[3.5,1000,1190],[4.25,1000,1190],[4.75,1000,1190],[5.5,1000,1190]]},
+ hs: {1:[[2.25,1310,1450],[2.75,1280,1410],[3,1280,1410],[3.5,1240,1410],[4.25,1170,1380],[4.75,1170,1380],[5.5,1170,1380]],
+      2:[[2.25,1240,1380],[2.75,1210,1340],[3,1210,1340],[3.5,1170,1340],[4.25,1100,1280],[4.75,1100,1280],[5.5,1100,1280]]}
+};
+const GRADE_TXT={reg:'regular steel',hs:'high strength steel'};
+function alTensile(d){const r=AL_T.find(x=>d<=x[0]);return r?r[1]:null;}
+function stTensile(d,grade,zn,basis){
+  if(d<=1.24)return null;
+  const r=(ST_T[grade]||ST_T.reg)[zn==2?2:1].find(x=>d<=x[0]);
+  return r?(basis==='ext'?r[1]:r[2]):null;
+}
+const CASE_TXT={
+  none:'No grease. Plain stranding.',
+  K1:'Case 1 – steel core greased.',
+  K2:'Case 2 – all conductor greased except the outer layer.',
+  K3:'Case 3 – all conductor greased including the outer layer.',
+  K4:'Case 4 – all conductor greased except the outer surface of the wires in the outer layer.'
+};
+const hasVal=v=>v!==''&&v!==null&&v!==undefined&&isFinite(+v);
+
+function calc(s){
+  const code=STR.find(r=>r.al===s.nAl&&r.st===s.nSt)||null;
+  const pi4=Math.PI/4, missing=[];
+  const aAl=pi4*s.nAl*s.dAl**2, aSt=pi4*s.nSt*s.dSt**2;
+  const mAl=aAl*s.rAl, mSt=aSt*s.rSt;
+
+  let incAl,srcAl,incSt,srcSt;
+  if(hasVal(s.ovAl)){incAl=+s.ovAl;srcAl='override';}
+  else if(code&&code.ia!==null){incAl=code.ia;srcAl='table';}
+  else{incAl=0;srcAl='missing';missing.push('aluminium increment');}
+  if(s.nSt===0){incSt=0;srcSt='n/a';}
+  else if(hasVal(s.ovSt)){incSt=+s.ovSt;srcSt='override';}
+  else if(code&&code.is!==null){incSt=code.is;srcSt='table';}
+  else{incSt=0;srcSt='missing';missing.push('steel increment');}
+
+  const fAl=1+incAl/100, fSt=1+incSt/100;
+  const mAlInc=mAl*fAl, mStInc=mSt*fSt, noGrease=mAlInc+mStInc;
+
+  const dG=s.nSt>0?s.dSt:s.dAl;
+  const kFor=gc=>{
+    if(gc==='none')return {k:0,src:'none'};
+    if(hasVal(s.ovGr))return {k:+s.ovGr,src:'override'};
+    if(code)return {k:code.g[CASES.indexOf(gc)],src:'table'};
+    return {k:null,src:'missing'};
+  };
+  const kk=kFor(s.gc);
+  let K=kk.k, srcK=kk.src;
+  if(K===null){K=0;missing.push('grease factor');}
+  const grease=K*dG*dG, steelGrease=mStInc+grease, total=noGrease+grease;
+
+  const cases=['none',...CASES].map(gc=>{
+    const r=kFor(gc);
+    const gm=r.k===null?null:r.k*dG*dG;
+    return {gc,k:r.k,grease:gm,total:gm===null?null:noGrease+gm};
+  });
+
+  // Rated strength (sheet cells C24:C31)
+  const rtsMissing=[];
+  let tAl,srcTAl,tSt,srcTSt;
+  if(hasVal(s.ovTAl)){tAl=+s.ovTAl;srcTAl='override';}
+  else{tAl=alTensile(s.dAl);srcTAl='table';if(tAl===null){tAl=0;srcTAl='missing';rtsMissing.push('aluminium tensile stress (wire diameter outside table)');}}
+  if(s.nSt===0){tSt=0;srcTSt='n/a';}
+  else if(hasVal(s.ovTSt)){tSt=+s.ovTSt;srcTSt='override';}
+  else{tSt=stTensile(s.dSt,s.stGrade,s.zn,s.basis);srcTSt='table';if(tSt===null){tSt=0;srcTSt='missing';rtsMissing.push('steel tensile stress (wire diameter outside table)');}}
+  const kf=s.kf, G=9.81;
+  const bAl0=tAl/G, bSt0=tSt/G, bAl1=bAl0*kf, bSt1=bSt0*kf;
+  const rAlKN=aAl*bAl1*G/1000, rStKN=aSt*bSt1*G/1000;
+  const rts={tAl,srcTAl,tSt,srcTSt,kf,bAl0,bSt0,bAl1,bSt1,al:rAlKN,st:rStKN,total:rAlKN+rStKN,tonnes:(rAlKN+rStKN)/G,missing:rtsMissing};
+
+  const R20=aAl>0?(s.rho20/aAl)*fAl:null;
+  const geom=geo(s,code);
+  return {code,aAl,aSt,aTot:aAl+aSt,mAl,mSt,incAl,srcAl,incSt,srcSt,fAl,fSt,mAlInc,mStInc,noGrease,
+          dG,K,srcK,grease,steelGrease,total,cases,R20,missing,geom,rts};
+}
+
+function distribute(total,radii){
+  if(total<=0)return radii.map(()=>0);
+  const sum=radii.reduce((a,b)=>a+b,0);
+  const out=radii.map(r=>Math.round(total*r/sum));
+  const diff=total-out.reduce((a,b)=>a+b,0);
+  out[out.length-1]+=diff;
+  return out;
+}
+function geo(s,code){
+  const wires=[], rA=s.dAl/2, rS=s.dSt/2;
+  let Rcore, steelLayers=0;
+  if(s.nSt>0){
+    const counts=[1]; let left=s.nSt-1, k=1;
+    while(left>0){const c=Math.min(6*k,left);counts.push(c);left-=c;k++;}
+    steelLayers=counts.length;
+    counts.forEach((c,j)=>{
+      const R=j*s.dSt;
+      for(let i=0;i<c;i++){
+        const a=c===1?0:(2*Math.PI*i/c)+(j%2?Math.PI/c:0);
+        wires.push({x:R*Math.cos(a),y:R*Math.sin(a),r:rS,t:'st'});
+      }
+    });
+    Rcore=(steelLayers-1)*s.dSt+rS;
+  }else{
+    wires.push({x:0,y:0,r:rA,t:'al'});
+    Rcore=rA;
+  }
+  const alLeft=s.nAl-(s.nSt>0?0:1);
+  let L;
+  if(code)L=code.la;
+  else{
+    L=0;let cap=0;
+    while(cap<alLeft&&L<12){L++;const R=Rcore+(2*L-1)*rA;cap+=Math.floor(Math.PI/Math.asin(Math.min(1,rA/R)));}
+    L=Math.max(1,L);
+  }
+  const radii=[];for(let k=1;k<=L;k++)radii.push(Rcore+(2*k-1)*rA);
+  const per=distribute(alLeft,radii);
+  per.forEach((c,idx)=>{
+    for(let i=0;i<c;i++){
+      const a=(2*Math.PI*i/c)+(idx%2?Math.PI/c:0)+0.15*idx;
+      wires.push({x:radii[idx]*Math.cos(a),y:radii[idx]*Math.sin(a),r:rA,t:'al'});
+    }
+  });
+  const Rout=Rcore+2*L*rA;
+  return {wires,Rcore,Rout,D:2*Rout,L,perLayer:per,Router:Rcore+2*(L-1)*rA};
+}
+// </calc>
+
+const DEFAULT={nAl:54,nSt:7,dAl:3,dSt:3,rAl:2.7,rSt:7.78,gc:'K1',ovAl:'',ovSt:'',ovGr:'',rho20:28.264,stGrade:'reg',zn:'1',basis:'ult',kf:0.95,ovTAl:'',ovTSt:''};
+let state=Object.assign({},DEFAULT);
+const $=id=>document.getElementById(id);
+const f=(x,d=2)=>x.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const FIELDS={
+  nAl:{int:true,min:1},nSt:{int:true,min:0},dAl:{min:0.001},dSt:{min:0.001},rAl:{min:0.001},rSt:{min:0.001},rho20:{min:0.001},kf:{min:0.01,max:1}
+};
+
+function codeLabel(r){return `${r.c} – ${r.al}/${r.st}${r.st===0?' (all aluminium)':''}`;}
+function buildPreset(){
+  $('preset').innerHTML=STR.map(r=>`<option value="${r.c}">${codeLabel(r)}</option>`).join('')+'<option value="custom">Custom wire counts</option>';
+}
+
+function readInputs(){
+  Object.keys(FIELDS).forEach(k=>{
+    const el=$(k), v=parseFloat(el.value), m=FIELDS[k];
+    const ok=isFinite(v)&&v>=m.min&&(m.max===undefined||v<=m.max)&&(!m.int||Number.isInteger(v));
+    el.classList.toggle('invalid',!ok);
+    if(ok)state[k]=v;
+  });
+  ['ovAl','ovSt','ovGr','ovTAl','ovTSt'].forEach(k=>{state[k]=$(k).value;});
+  ['stGrade','zn','basis'].forEach(k=>{state[k]=$(k).value;});
+  state.gc=(document.querySelector('input[name=gc]:checked')||{value:'K1'}).value;
+}
+function writeInputs(){
+  Object.keys(FIELDS).forEach(k=>{$(k).value=state[k];$(k).classList.remove('invalid');});
+  ['ovAl','ovSt','ovGr','ovTAl','ovTSt'].forEach(k=>{$(k).value=state[k];});
+  ['stGrade','zn','basis'].forEach(k=>{$(k).value=state[k];});
+  $('gc-'+state.gc).checked=true;
+}
+
+function drawXS(r){
+  const g=r.geom, cx=200, cy=196, scale=172/g.Rout;
+  const px=v=>v*scale;
+  let svg='';
+  svg+=`<circle cx="${cx}" cy="${cy}" r="${px(g.Rout)+6}" fill="none" stroke="var(--line)" stroke-dasharray="3 4"/>`;
+  if(state.gc!=='none'){
+    const rr=state.gc==='K1'?g.Rcore:state.gc==='K2'?g.Router:g.Rout;
+    const op=state.gc==='K4'?.6:1;
+    if(rr>0)svg+=`<circle cx="${cx}" cy="${cy}" r="${px(rr)}" fill="var(--grease-soft)" opacity="${op}"/>`;
+  }
+  g.wires.forEach(w=>{
+    const al=w.t==='al';
+    svg+=`<circle cx="${(cx+px(w.x)).toFixed(2)}" cy="${(cy+px(w.y)).toFixed(2)}" r="${Math.max(0.5,px(w.r)-0.4).toFixed(2)}" fill="${al?'var(--al)':'var(--st)'}" stroke="${al?'var(--al-stroke)':'var(--st-stroke)'}" stroke-width="0.8"/>`;
+  });
+  const y=cy+172+30;
+  svg+=`<line x1="${cx-172}" y1="${y}" x2="${cx+172}" y2="${y}" stroke="var(--muted)" stroke-width="1"/>`;
+  svg+=`<line x1="${cx-172}" y1="${y-5}" x2="${cx-172}" y2="${y+5}" stroke="var(--muted)"/><line x1="${cx+172}" y1="${y-5}" x2="${cx+172}" y2="${y+5}" stroke="var(--muted)"/>`;
+  svg+=`<rect x="${cx-52}" y="${y-10}" width="104" height="20" fill="var(--surface)"/>`;
+  svg+=`<text x="${cx}" y="${y+4.5}" text-anchor="middle" font-size="13" fill="var(--ink)" font-family="var(--sans)" style="font-variant-numeric:tabular-nums">Ø ${f(g.D)} mm</text>`;
+  $('xs').innerHTML=svg;
+}
+
+function render(){
+  const r=calc(state), code=r.code;
+  const p=$('preset'); p.value=code?code.c:'custom';
+
+  const dsg=state.nSt>0
+    ? `<b>${state.nAl}/${f(state.dAl)} + ${state.nSt}/${f(state.dSt)} mm</b> ACSR`
+    : `<b>${state.nAl}/${f(state.dAl)} mm</b> all-aluminium`;
+  $('designation').innerHTML=dsg+(code?` &nbsp;·&nbsp; stranding ${code.c}`:' &nbsp;·&nbsp; non-standard stranding');
+
+  const b=$('banner');
+  if(r.missing.length){
+    b.hidden=false;
+    b.textContent=code
+      ?`Stranding ${code.c} (${code.al}/${code.st}) has no ${r.missing.join(' or ')} in the source table, so it is counted as 0. Enter a value under Manual overrides.`
+      :`${state.nAl}/${state.nSt} is not a standard IEC 61089 stranding, so the ${r.missing.join(' and ')} could not be looked up and is counted as 0. Enter values under Manual overrides.`;
+  }else b.hidden=true;
+
+  $('casedesc').textContent=CASE_TXT[state.gc];
+
+  drawXS(r);
+
+  $('totalBig').innerHTML=`${f(r.total)}<span>kg/km</span>`;
+  $('totalSub').textContent=`${f(r.noGrease)} kg/km without grease`;
+  const segs=[
+    {n:'Aluminium wires',v:r.mAl,c:'var(--al)'},
+    {n:`Aluminium lay increment (+${f(r.incAl)}%)`,v:r.mAlInc-r.mAl,c:'var(--inc)'},
+    {n:'Steel wires',v:r.mSt,c:'var(--st)'},
+    {n:`Steel lay increment (+${f(r.incSt)}%)`,v:r.mStInc-r.mSt,c:'var(--st2)'},
+    {n:'Grease',v:r.grease,c:'var(--grease)'}
+  ];
+  $('bar').innerHTML=segs.filter(x=>x.v>0).map(x=>`<i style="flex:${x.v} 1 0;background:${x.c}" title="${x.n}"></i>`).join('');
+  $('legend').innerHTML=segs.map(x=>`<tr><td><span class="sw" style="background:${x.c}"></span></td><td>${x.n}</td><td class="v">${f(x.v)}</td><td class="p">${f(100*x.v/r.total,1)}%</td></tr>`).join('');
+
+  const stat=(k,v,u,x)=>`<div class="stat"><dt>${k}</dt><dd class="num">${v}<small>${u}</small></dd>${x?`<div class="ext">${x}</div>`:''}</div>`;
+  $('stats').innerHTML=
+    stat('Mass without grease',f(r.noGrease),'kg/km')+
+    stat('Grease',f(r.grease),'kg/km',r.srcK==='none'?'not applied':`K = ${f(r.K)} × d²`)+
+    stat('Aluminium area',f(r.aAl),'mm²')+
+    stat('Steel area',f(r.aSt),'mm²')+
+    stat('Overall diameter',f(r.geom.D),'mm','added: not in sheet')+
+    stat('DC resistance, 20 °C',r.R20===null?'–':f(r.R20,4),'Ω/km','added: not in sheet');
+
+  const srcTag=s=>s==='override'?'<span class="tag">override</span>':s==='missing'?'<span class="tag warn">not in table</span>':'';
+  const tr=(a,fm,al,st,tot,cell,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${a}</td><td class="f">${fm}</td><td>${al}</td><td>${st}</td><td>${tot}</td><td class="cell">${cell}</td></tr>`;
+  $('trace').innerHTML=
+    `<thead><tr><th>Quantity</th><th class="f">Formula</th><th>Aluminium</th><th>Steel</th><th>Total</th><th>Sheet cell</th></tr></thead><tbody>`+
+    tr('Wire count','input',state.nAl,state.nSt,state.nAl+state.nSt,'D5 / E5')+
+    tr('Wire diameter (mm)','input',f(state.dAl),f(state.dSt),'','D6 / E6')+
+    tr('Density (g/cm³)','input',f(state.rAl),f(state.rSt),'','D7 / E7')+
+    tr('Design CSA (mm²)','π/4 × n × d²',f(r.aAl),f(r.aSt),f(r.aTot),'D19 / E19')+
+    tr('Mass (kg/km)','π/4 × n × d² × ρ',f(r.mAl),f(r.mSt),f(r.mAl+r.mSt),'D8 / E8')+
+    tr('Increment factor','1 + inc% / 100',`${f(r.fAl,4)}${srcTag(r.srcAl)}`,`${f(r.fSt,4)}${srcTag(r.srcSt)}`,'','D9 / E9')+
+    tr('Mass with increment (kg/km)','mass × factor',f(r.mAlInc),f(r.mStInc),f(r.noGrease),'D10 / E10 / D11')+
+    tr(`Grease factor ${state.gc==='none'?'(none)':state.gc}`,'IEC 61089 table','',`${f(r.K)}${srcTag(r.srcK)}`,'','D14')+
+    tr('Grease mass (kg/km)',`K × d²  (d = ${f(r.dG)} mm)`,'',f(r.grease),f(r.grease),'D16')+
+    tr('Steel with grease (kg/km)','steel + grease','',f(r.steelGrease),'','D15')+
+    tr('Total mass (kg/km)','without grease + grease',f(r.mAlInc),f(r.steelGrease),f(r.total),'D17','tot')+
+    `</tbody>`;
+
+  const T=r.rts;
+  $('rtsBig').innerHTML=`${f(T.total)}<span>kN</span>`;
+  $('rtsSub').textContent=`≈ ${f(T.tonnes)} tonnes-force, after the ${f(T.kf)} stranding factor`;
+  const rsegs=[{n:'Aluminium wires',v:T.al,c:'var(--al)'},{n:'Steel wires',v:T.st,c:'var(--st)'}];
+  $('rtsBar').innerHTML=rsegs.filter(x=>x.v>0).map(x=>`<i style="flex:${x.v} 1 0;background:${x.c}" title="${x.n}"></i>`).join('');
+  $('rtsLegend').innerHTML=rsegs.map(x=>`<tr><td><span class="sw" style="background:${x.c}"></span></td><td>${x.n}</td><td class="v">${f(x.v)} kN</td><td class="p">${T.total>0?f(100*x.v/T.total,1):'0.0'}%</td></tr>`).join('');
+  const tg=s=>s==='override'?'<span class="tag">override</span>':s==='missing'?'<span class="tag warn">not in table</span>':'';
+  const stDesc=state.nSt>0?`${GRADE_TXT[state.stGrade]}, class ${state.zn}, ${state.basis==='ext'?'1% extension':'ultimate'}`:'';
+  const rr=(a,fm,al,st,tot,cell,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${a}</td><td class="f">${fm}</td><td>${al}</td><td>${st}</td><td>${tot}</td><td class="cell">${cell}</td></tr>`;
+  $('rtsTrace').innerHTML=
+    `<thead><tr><th>Rated strength</th><th class="f">Formula</th><th>Aluminium</th><th>Steel</th><th>Total</th><th>Sheet cell</th></tr></thead><tbody>`+
+    rr('Wire diameter (mm)','input',f(state.dAl),f(state.dSt),'','D6 / E6')+
+    rr('Design CSA (mm²)','π/4 × n × d²',f(r.aAl),f(r.aSt),f(r.aTot),'D19 / E19')+
+    rr('Tensile stress (MPa)',`from table${stDesc?' ('+stDesc+')':''}`,`${f(T.tAl,0)}${tg(T.srcTAl)}`,`${f(T.tSt,0)}${tg(T.srcTSt)}`,'','C24 / D24')+
+    rr('Tensile before (kg/mm²)','MPa / 9.81',f(T.bAl0),f(T.bSt0),'','C25 / D25')+
+    rr('Tensile after (kg/mm²)',`× ${f(T.kf)}`,f(T.bAl1),f(T.bSt1),'','C26 / D26')+
+    rr('Breaking load (kN)','CSA × after × 9.81 / 1000',f(T.al),f(T.st),f(T.total),'C29 / C30 / C31','tot')+
+    `</tbody>`+
+    (T.missing.length?`<tfoot><tr><td colspan="6" style="text-align:left;color:var(--warn);white-space:normal;padding-top:10px">Missing: ${T.missing.join('; ')}. Counted as 0. Enter a value under Tensile overrides.</td></tr></tfoot>`:'');
+
+  const maxG=Math.max(...r.cases.map(c=>c.grease||0),0.0001);
+  $('cases').innerHTML=r.cases.map(c=>`
+    <div class="row${c.gc===state.gc?' on':''}" data-gc="${c.gc}" tabindex="0" role="button" aria-pressed="${c.gc===state.gc}">
+      <div class="name">${c.gc==='none'?'None':c.gc}<small>${c.gc==='none'?'No grease':CASE_TXT[c.gc].replace(/^Case \d – /,'').replace(/\.$/,'')}</small></div>
+      <div class="gb" aria-hidden="true"><i style="width:${c.grease===null?0:100*c.grease/maxG}%"></i></div>
+      <div class="val num">${c.grease===null?'–':'+'+f(c.grease)}</div>
+      <div class="val num"><b>${c.total===null?'–':f(c.total)}</b></div>
+    </div>`).join('');
+
+  const ci=CASES.indexOf(state.gc);
+  $('cat').innerHTML=`<thead><tr><th>Code</th><th>Al / steel</th><th>Al layers</th><th>Al inc %</th><th>Steel inc %</th><th>K1</th><th>K2</th><th>K3</th><th>K4</th><th>Mass (kg/km)</th><th>RTS (kN)</th></tr></thead><tbody>`+
+    STR.map(row=>{
+      const q=calc(Object.assign({},state,{nAl:row.al,nSt:row.st,ovAl:'',ovSt:'',ovGr:''}));
+      const on=code&&code.c===row.c;
+      const miss=row.ia===null;
+      return `<tr data-c="${row.c}" class="${on?'on':''}" tabindex="0"><td>${row.c}</td><td>${row.al}/${row.st}</td><td>${row.la}</td>`+
+        `<td class="${miss?'miss':''}">${row.ia===null?'–':f(row.ia)}</td><td class="${miss?'miss':''}">${row.is===null?'–':f(row.is)}</td>`+
+        row.g.map((v,i)=>`<td class="${i===ci?'col':''}">${f(v)}</td>`).join('')+
+        `<td><b>${f(q.total)}</b>${miss?'†':''}</td><td><b>${f(q.rts.total)}</b></td></tr>`;
+    }).join('')+`</tbody>`;
+}
+
+function update(){readInputs();render();try{localStorage.setItem('acsr-state',JSON.stringify(state));}catch(e){}}
+
+function setStranding(c){
+  const row=STR.find(r=>r.c===c);
+  if(!row)return;
+  state.nAl=row.al;state.nSt=row.st;
+  $('nAl').value=row.al;$('nSt').value=row.st;
+  update();
+}
+function summary(){
+  const r=calc(state);
+  return [
+    `ACSR ${state.nAl}/${f(state.dAl)} + ${state.nSt}/${f(state.dSt)} mm${r.code?` (stranding ${r.code.c})`:''}`,
+    `Grease: ${state.gc==='none'?'none':state.gc+' (K = '+f(r.K)+')'}`,
+    `Aluminium: ${f(r.aAl)} mm², ${f(r.mAl)} kg/km, increment ${f(r.incAl)}% -> ${f(r.mAlInc)} kg/km`,
+    `Steel: ${f(r.aSt)} mm², ${f(r.mSt)} kg/km, increment ${f(r.incSt)}% -> ${f(r.mStInc)} kg/km`,
+    `Mass without grease: ${f(r.noGrease)} kg/km`,
+    `Grease: ${f(r.grease)} kg/km`,
+    `Total mass: ${f(r.total)} kg/km`,
+    `Rated tensile strength: ${f(r.rts.total)} kN (Al ${f(r.rts.al)} + steel ${f(r.rts.st)}), ${f(r.rts.tonnes)} tonnes-force`,
+    `Overall diameter: ${f(r.geom.D)} mm`,
+    `DC resistance at 20 C: ${r.R20===null?'-':f(r.R20,4)} ohm/km`
+  ].join('\n');
+}
+function flash(msg){const s=$('status');s.textContent=msg;setTimeout(()=>{s.textContent='';},2600);}
+
+function init(){
+  buildPreset();
+  try{const saved=JSON.parse(localStorage.getItem('acsr-state')||'null');if(saved&&typeof saved==='object')state=Object.assign({},DEFAULT,saved);}catch(e){}
+  writeInputs();
+  Object.keys(FIELDS).concat(['ovAl','ovSt','ovGr','ovTAl','ovTSt']).forEach(k=>$(k).addEventListener('input',update));
+  ['stGrade','zn','basis'].forEach(k=>$(k).addEventListener('change',update));
+  document.querySelectorAll('input[name=gc]').forEach(el=>el.addEventListener('change',update));
+  $('preset').addEventListener('change',e=>{if(e.target.value!=='custom')setStranding(e.target.value);});
+  $('cases').addEventListener('click',e=>{const row=e.target.closest('[data-gc]');if(row){$('gc-'+row.dataset.gc).checked=true;update();}});
+  $('cases').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const row=e.target.closest('[data-gc]');if(row){e.preventDefault();$('gc-'+row.dataset.gc).checked=true;update();}}});
+  $('cat').addEventListener('click',e=>{const row=e.target.closest('tr[data-c]');if(row)setStranding(row.dataset.c);});
+  $('cat').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const row=e.target.closest('tr[data-c]');if(row){e.preventDefault();setStranding(row.dataset.c);}}});
+  $('reset').addEventListener('click',()=>{state=Object.assign({},DEFAULT);writeInputs();update();flash('Reset to the values in your sheet.');});
+  $('copy').addEventListener('click',async()=>{
+    const text=summary();
+    try{await navigator.clipboard.writeText(text);flash('Summary copied.');}
+    catch(e){
+      try{const t=document.createElement('textarea');t.value=text;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();flash('Summary copied.');}
+      catch(e2){flash('Copy is blocked here. Select the figures manually.');}
+    }
+  });
+  render();
+}
+init();
+</script>
+</body>
+</html>
